@@ -31,10 +31,18 @@ func (h *ZipcodeHandler) SaveZipcodeHandler(w http.ResponseWriter, r *http.Reque
 	_, span := h.TemplateData.OTELTracer.Start(ctx, h.TemplateData.RequestNameOTEL+" POST")
 	defer span.End()
 
-	if err := r.ParseForm(); err != nil {
-		fmt.Fprintf(w, "ParseForm() err: %v", err)
+	// if err := r.ParseForm(); err != nil {
+	// 	fmt.Fprintf(w, "ParseForm() err: %v", err)
+	// }
+	// zipstr := r.FormValue("cep")
+
+	var zipCode entity.ZipCodeForm
+	err := json.NewDecoder(r.Body).Decode(&zipCode)
+	if err != nil {
+		fmt.Println(err)
 	}
-	zipstr := r.FormValue("cep")
+
+	zipstr := zipCode.Zipcode
 
 	zipcode, err := usecases.CreateZipCode(zipstr)
 	if err != nil {
