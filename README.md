@@ -61,7 +61,7 @@ Set your WeatherAPI APIKey in the WEATHER_API_KEY variable in the `docker-compos
 
 Run `docker-compose up --build`.
 
-- Service A: port 8080: `http://localhost:8080`
+- Service A: port 8080:
   - zipcode will be sent to: `http://localhost:8080/cep`
 - Service B: port 8000: `http://localhost:8000`
 - Jaeger: port 16686
