@@ -4,7 +4,8 @@ receivers:
       grpc:
 
 exporters:
-  prometheus: endpoint:"0.0.0.0:8889"
+  prometheus: 
+    endpoint: "0.0.0.0:8889"
 
   logging:
 
@@ -13,8 +14,8 @@ exporters:
     tls:
       insecure: true
 
-  processors:
-    batch:
+processors:
+  batch:
 
 service:
   pipelines:

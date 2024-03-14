@@ -1,6 +1,9 @@
 package webserver
 
 import (
+	"embed"
+	"fmt"
+	"html/template"
 	"net/http"
 	"time"
 
@@ -11,6 +14,9 @@ import (
 	"github.com/kelwynOliveira/Goexpert-Distributed-Tracing-and-Span/internal/usecases"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+// go:embed template/*
+var templateContent embed.FS
 
 type Webserver struct {
 	TemplateData *entity.TemplateData
@@ -37,8 +43,17 @@ func (we *Webserver) CreateServer() *chi.Mux {
 
 	switch we.TemplateData.Name {
 	case "serviceA":
-		fileServer := http.FileServer(http.Dir("template/"))
-		http.Handle("/", fileServer)
+		// fileServer := http.FileServer(http.Dir("template"))
+		// router.Handle("/*", fileServer)
+		router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			tpl := template.Must(template.New("index.html").ParseFS(templateContent, "template/index.html"))
+			err := tpl.Execute(w, we.TemplateData)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Error executing template: %v", err), http.StatusInternalServerError)
+				return
+			}
+		})
+
 		router.Post("/cep", handlers.NewZipcodeHandler(we.TemplateData).SaveZipcodeHandler)
 		router.Get("/cep", handlers.NewZipcodeHandler(we.TemplateData).GetZipcodeHandler)
 	case "serviceB":
