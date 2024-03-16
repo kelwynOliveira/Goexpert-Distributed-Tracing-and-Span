@@ -46,8 +46,8 @@ services:
       - TITLE=Microservice A
       - NAME=serviceA
       - CONTENT=This is the microservice A
-      - EXTERNAL_CALL_URL=http://servicea:8080/cep
-      - EXTERNAL_CALL_METHOD=POST
+      - EXTERNAL_CALL_URL=http://serviceb:8000/
+      - EXTERNAL_CALL_METHOD=GET
       - REQUEST_NAME_OTEL=microservice-a-request
       - OTEL_SERVICE_NAME=microservice-A
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
@@ -68,8 +68,8 @@ services:
       - NAME=serviceB
       - WEATHER_API_KEY=
       - CONTENT=This is the microservice B
-      - EXTERNAL_CALL_URL=http://servicea:8080/cep
-      - EXTERNAL_CALL_METHOD=GET
+      - EXTERNAL_CALL_URL=http://servicea:8080/
+      - EXTERNAL_CALL_METHOD=POST
       - REQUEST_NAME_OTEL=microservice-b-request
       - OTEL_SERVICE_NAME=microservice-B
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317

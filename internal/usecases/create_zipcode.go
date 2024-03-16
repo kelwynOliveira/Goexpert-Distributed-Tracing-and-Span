@@ -8,7 +8,7 @@ import (
 )
 
 func CreateZipCode(zipcode string) (*entity.ZipCodeForm, error) {
-	err := validateInput(zipcode)
+	err := ValidateInput(zipcode)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func CreateZipCode(zipcode string) (*entity.ZipCodeForm, error) {
 	}, nil
 }
 
-func validateInput(zipCode string) error {
+func ValidateInput(zipCode string) error {
 	matched, err := regexp.MatchString(`\b\d{8}\b`, zipCode)
 	if !matched || err != nil {
 		return errors.New("invalid zipcode")

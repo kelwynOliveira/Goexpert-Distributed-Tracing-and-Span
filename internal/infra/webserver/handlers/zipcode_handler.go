@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/kelwynOliveira/Goexpert-Distributed-Tracing-and-Span/internal/entity"
-	"github.com/kelwynOliveira/Goexpert-Distributed-Tracing-and-Span/internal/infra/database"
 	"github.com/kelwynOliveira/Goexpert-Distributed-Tracing-and-Span/internal/usecases"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -23,28 +22,30 @@ func NewZipcodeHandler(TemplateData *entity.TemplateData) *ZipcodeHandler {
 	}
 }
 
-func (h *ZipcodeHandler) SaveZipcodeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ZipcodeHandler) ZipcodeHandler(w http.ResponseWriter, r *http.Request) {
 	carrier := propagation.HeaderCarrier(r.Header)
 	ctx := r.Context()
 	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
 
-	_, span := h.TemplateData.OTELTracer.Start(ctx, h.TemplateData.RequestNameOTEL+" POST")
+	_, span := h.TemplateData.OTELTracer.Start(ctx, h.TemplateData.RequestNameOTEL)
 	defer span.End()
-
-	// if err := r.ParseForm(); err != nil {
-	// 	fmt.Fprintf(w, "ParseForm() err: %v", err)
-	// }
-	// zipstr := r.FormValue("cep")
 
 	var zipCode entity.ZipCodeForm
 	err := json.NewDecoder(r.Body).Decode(&zipCode)
 	if err != nil {
-		fmt.Println(err)
+		msg := struct {
+			Message string `json:"message"`
+		}{
+			Message: err.Error(),
+		}
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		json.NewEncoder(w).Encode(msg)
+		return
 	}
 
 	zipstr := zipCode.Zipcode
 
-	zipcode, err := usecases.CreateZipCode(zipstr)
+	err = usecases.ValidateInput(zipstr)
 	if err != nil {
 		msg := struct {
 			Message string `json:"message"`
@@ -56,41 +57,22 @@ func (h *ZipcodeHandler) SaveZipcodeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// File
-	err = database.CreateFile(zipstr)
+	// Forward request to Service B
+	resp, err := http.Post(h.TemplateData.ExternalCallURL+"?postcode="+zipstr, "", nil)
 	if err != nil {
-		fmt.Println(err)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(zipcode)
-
-}
-
-func (h *ZipcodeHandler) GetZipcodeHandler(w http.ResponseWriter, r *http.Request) {
-	carrier := propagation.HeaderCarrier(r.Header)
-	ctx := r.Context()
-	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
-
-	_, span := h.TemplateData.OTELTracer.Start(ctx, h.TemplateData.RequestNameOTEL+" GET")
-	defer span.End()
-
-	zipstr := database.ReadFile()
-
-	zipcode, err := usecases.CreateZipCode(zipstr)
-	if err != nil {
-		msg := struct {
-			Message string `json:"message"`
-		}{
-			Message: err.Error(),
-		}
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(msg)
+		http.Error(w, "failed to forward request", http.StatusInternalServerError)
 		return
 	}
+	defer resp.Body.Close()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(zipcode)
+	// Forward Service B response to client
+	for name, values := range resp.Header {
+		w.Header()[name] = values
+	}
+	w.WriteHeader(resp.StatusCode)
+	_, err = fmt.Fprint(w, resp.Body)
+	if err != nil {
+		fmt.Println("Error writing response:", err)
+	}
+
 }

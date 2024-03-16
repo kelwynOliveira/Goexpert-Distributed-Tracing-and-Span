@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 
 	"github.com/kelwynOliveira/Goexpert-Distributed-Tracing-and-Span/internal/entity"
@@ -40,20 +39,21 @@ func (h *WebClimateHandler) TemperatureHandler(w http.ResponseWriter, r *http.Re
 	_, span := h.TemplateData.OTELTracer.Start(ctx, h.TemplateData.RequestNameOTEL+" GET")
 	defer span.End()
 
-	zipcode, err := GetZipCode()
+	postcode := r.URL.Query().Get("postcode")
+
+	err := usecases.ValidateInput(postcode)
 	if err != nil {
-		err = errors.New("can not find zipcode")
 		msg := struct {
 			Message string `json:"message"`
 		}{
 			Message: err.Error(),
 		}
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		json.NewEncoder(w).Encode(msg)
 		return
 	}
 
-	location, err := usecases.GetViaCEP(zipcode.Zipcode)
+	location, err := usecases.GetViaCEP(postcode)
 	if err != nil {
 		err = errors.New("can not find zipcode")
 		msg := struct {
@@ -98,26 +98,4 @@ func convertTemperature(celcius float64) (float64, float64) {
 	kelvin := celcius + 273.15
 
 	return fahrenheit, kelvin
-}
-
-func GetZipCode() (*entity.ZipCodeForm, error) {
-	var zipcode entity.ZipCodeForm
-
-	zipcodeURL := "http://localhost:8080/cep"
-
-	request, err := http.Get(zipcodeURL)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := io.ReadAll(request.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(result, &zipcode)
-	if err != nil {
-		return nil, err
-	}
-	return &zipcode, err
 }
