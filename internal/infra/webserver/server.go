@@ -50,7 +50,7 @@ func (we *Webserver) CreateServer() *chi.Mux {
 		// 	}
 		// })
 
-		router.Get("/", handlers.NewZipcodeHandler(we.TemplateData).ZipcodeHandler)
+		router.Post("/", handlers.NewZipcodeHandler(we.TemplateData).ZipcodeHandler)
 		// router.Get("/cep", handlers.NewZipcodeHandler(we.TemplateData).GetZipcodeHandler)
 	case "serviceB":
 		climate := usecases.NewFindByCityNameUseCase(we.TemplateData.WeatherApiKey)
