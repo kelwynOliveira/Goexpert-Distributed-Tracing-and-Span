@@ -68,8 +68,6 @@ services:
       - NAME=serviceB
       - WEATHER_API_KEY=
       - CONTENT=This is the microservice B
-      - EXTERNAL_CALL_URL=http://servicea:8080/
-      - EXTERNAL_CALL_METHOD=POST
       - REQUEST_NAME_OTEL=microservice-b-request
       - OTEL_SERVICE_NAME=microservice-B
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317

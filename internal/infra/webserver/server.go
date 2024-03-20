@@ -39,24 +39,11 @@ func (we *Webserver) CreateServer() *chi.Mux {
 
 	switch we.TemplateData.Name {
 	case "serviceA":
-		// fileServer := http.FileServer(http.Dir("template"))
-		// router.Handle("/*", fileServer)
-		// router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		// 	tpl := template.Must(template.New("index.html").ParseFS(templateContent, "template/index.html"))
-		// 	err := tpl.Execute(w, we.TemplateData)
-		// 	if err != nil {
-		// 		http.Error(w, fmt.Sprintf("Error executing template: %v", err), http.StatusInternalServerError)
-		// 		return
-		// 	}
-		// })
-
 		router.Post("/", handlers.NewZipcodeHandler(we.TemplateData).ZipcodeHandler)
-		// router.Get("/cep", handlers.NewZipcodeHandler(we.TemplateData).GetZipcodeHandler)
 	case "serviceB":
 		climate := usecases.NewFindByCityNameUseCase(we.TemplateData.WeatherApiKey)
 		temperatureHandler := handlers.NewWebClimateHandler(climate, we.TemplateData)
-		router.Get("/", temperatureHandler.TemperatureHandler)
+		router.HandleFunc("/", temperatureHandler.TemperatureHandler)
 	}
-	// router.Get("/", handlers.)
 	return router
 }

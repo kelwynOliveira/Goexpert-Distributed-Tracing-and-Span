@@ -27,23 +27,16 @@ func (h *ZipcodeHandler) ZipcodeHandler(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
 
-	_, span := h.TemplateData.OTELTracer.Start(ctx, h.TemplateData.RequestNameOTEL)
+	ctx, span := h.TemplateData.OTELTracer.Start(ctx, h.TemplateData.RequestNameOTEL)
 	defer span.End()
 
-	var zipCode entity.ZipCodeForm
-	err := json.NewDecoder(r.Body).Decode(&zipCode)
+	var requestData map[string]string
+	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
-		msg := struct {
-			Message string `json:"message"`
-		}{
-			Message: err.Error(),
-		}
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(msg)
+		http.Error(w, "invalid JSON format", http.StatusBadRequest)
 		return
 	}
-
-	zipstr := zipCode.Zipcode
+	zipstr := requestData["cep"]
 
 	err = usecases.ValidateInput(zipstr)
 	if err != nil {
@@ -57,10 +50,15 @@ func (h *ZipcodeHandler) ZipcodeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Forward request to Service B
-	resp, err := http.Post(h.TemplateData.ExternalCallURL+"?postcode="+zipstr, "", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8000/?postcode="+zipstr, nil)
 	if err != nil {
-		http.Error(w, "failed to forward request", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
