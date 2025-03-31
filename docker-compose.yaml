@@ -1,80 +1,36 @@
-version: '3'
 
 services:
-  jaeger-all-in-one:
-    image: jaegertracing/all-in-one:latest
-    restart: always
-    ports:
-    - "16686:16686"
-    - "14268"
-    - "14250"
-
-  prometheus:
-    container_name: prometheus
-    image: prom/prometheus:latest
-    restart: always
-    volumes:
-      - ./.docker/prometheus.yaml:/etc/prometheus/prometheus.yaml
-    ports:
-      - "9090:9090"
-
-  otel-collector:
-    image: otel/opentelemetry-collector:latest
-    restart: always
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    volumes:
-      - ./.docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "8888:8888" # PROMETHEUS METRICS EXPOSED BY THE COLLECTOR
-      - "8889:8889" # Prometheus exporter metrics
-      - "4317:4317" # OTLP gRPC receiver
-
   zipkin:
-    container_name: zipkin
-    image: openzipkin/zipkin:latest
-    restart: always
+    image: openzipkin/zipkin
     ports:
-      - "9411:9411"
-    depends_on:
-      - prometheus
+      - '9411:9411'
+    networks:
+      - my-network
 
-  servicea:
-    container_name: servicea
+  goapp-service-a:
+    container_name: goapp-a
     build:
-      context: .
-    environment:
-      - TITLE=Microservice A
-      - NAME=serviceA
-      - CONTENT=This is the microservice A
-      - EXTERNAL_CALL_URL=http://serviceb:8000/
-      - EXTERNAL_CALL_METHOD=GET
-      - REQUEST_NAME_OTEL=microservice-a-request
-      - OTEL_SERVICE_NAME=microservice-A
-      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
-      - HTTP_PORT=:8080
+      context: ./service_a
+      dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - '8080:8080'
     depends_on:
-      - jaeger-all-in-one
-      - prometheus
-      - otel-collector
+      - zipkin
+    networks:
+      - my-network
 
-  serviceb:
-    container_name: serviceb
+  goapp-service-b:
+    container_name: goapp-b
     build:
-      context: .
-    environment:
-      - TITLE=Microservice B
-      - NAME=serviceB
-      - WEATHER_API_KEY=
-      - CONTENT=This is the microservice B
-      - REQUEST_NAME_OTEL=microservice-b-request
-      - OTEL_SERVICE_NAME=microservice-B
-      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
-      - HTTP_PORT=:8000
+      context: ./service_b
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - '8081:8081'
     depends_on:
-      - jaeger-all-in-one
-      - prometheus
-      - otel-collector
+      - zipkin
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge

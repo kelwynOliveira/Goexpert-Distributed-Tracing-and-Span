@@ -55,14 +55,16 @@ Goexpert postgraduation project
 > - Documentation explaining how to run the project in a dev environment.
 > - Use docker/docker-compose so we can test your application.
 
-## How to execute
+## How to run
 
-Set your WeatherAPI APIKey in the WEATHER_API_KEY variable in the `docker-compose.yaml` file.
+Set your WeatherAPI APIKey in the WEATHER_API_KEY variable in the `.env` file.
+Set the CEP in the Makefile
 
-Run `docker-compose up --build`.
+After updating the `.env` file run the command `make up` or `docker compose up -d` at the main folder.
 
-- Service A: port 8080: `http://localhost:8080/`
-- Service B: port 8000: `http://localhost:8000/`
-- Jaeger: port 16686
-- Prometheus: port 9090
-- Zipkin: port 9411
+Run `make run`or
+
+- `curl -X POST -d '{"cep": "<CEP>"}' http://localhost:8080`
+- `curl http://localhost:8081/<CEP>`
+
+- Zipkin: `http://localhost:9411`
